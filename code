@@ -1,0 +1,283 @@
+## 1. Порівняння алгоритмів Спряжених Градієнтів (CG)
+
+import numpy as np
+from scipy.optimize import minimize
+
+def rosenbrock(x):
+    """x = [x, y]"""
+    return (1 - x[0])**2 + 100 * (x[1] - x[0]**2)**2
+
+def rosenbrock_grad(x):
+    df_dx = -2 * (1 - x[0]) - 400 * x[0] * (x[1] - x[0]**2)
+    df_dy = 200 * (x[1] - x[0]**2)
+    return np.array([df_dx, df_dy])
+
+x0 = np.array([-1.0, 1.0])
+
+result_cg = minimize(rosenbrock, x0, method='CG', jac=rosenbrock_grad)
+
+print("--- 1. Нелінійний CG: Результат мінімізації ---")
+print(f"Знайдений мінімум x: {result_cg.x.round(4)}")
+print(f"Мінімальне значення функції: {result_cg.fun.round(4)}")
+
+
+## 2. Аналіз Методу Заутендайка (SLSQP як Аналог)
+
+import numpy as np
+from scipy.optimize import minimize
+
+def objective(x):
+    """f(x, y) = x^2 + y^2"""
+    return x[0]**2 + x[1]**2
+
+def constraint1(x):
+    """G(x) = x[0] + x[1]^2 - 1. Повинно бути G(x) >= 0"""
+    return x[0] + x[1]**2 - 1
+
+con = ({'type': 'ineq', 'fun': constraint1})
+
+x0 = np.array([0.5, 0.5])
+
+result_slsqp = minimize(objective, x0, method='SLSQP', constraints=con)
+
+print("\n--- Аналіз Методу Заутендайка (Через SLSQP з обмеженнями) ---")
+print(f"Початкова точка: {x0}")
+print(f"Знайдений мінімум x: {result_slsqp.x.round(4)}")
+print(f"Мінімальне значення функції: {result_slsqp.fun.round(4)}")
+print(f"Статус завершення (0 - успіх): {result_slsqp.status}")
+print(f"Тест обмеження (має бути >= 0): {constraint1(result_slsqp.x).round(4)}")
+
+
+## 3. Порівняння Квазіньютонівських Методів (BFGS vs CG)
+
+import numpy as np
+from scipy.optimize import minimize
+
+def rosenbrock(x):
+    """f(x, y) = (1 - x)^2 + 100(y - x^2)^2"""
+    return (1 - x[0])**2 + 100 * (x[1] - x[0]**2)**2
+
+
+def rosenbrock_grad(x):
+    df_dx = -2 * (1 - x[0]) - 400 * x[0] * (x[1] - x[0]**2)
+    df_dy = 200 * (x[1] - x[0]**2)
+    return np.array([df_dx, df_dy])
+
+
+x0 = np.array([-1.2, 1.0])
+
+result_bfgs = minimize(rosenbrock, x0, method='BFGS', jac=rosenbrock_grad)
+result_cg = minimize(rosenbrock, x0, method='CG', jac=rosenbrock_grad)
+
+print("--- Порівняння Квазіньютонівських Методів (BFGS vs CG) ---")
+
+print("\nРЕЗУЛЬТАТ BFGS:")
+print(f"Мінімальна точка x: {result_bfgs.x.round(4)}")
+print(f"Мінімальне значення: {result_bfgs.fun.round(6)}")
+print(f"Кількість ітерацій (BFGS): {result_bfgs.nit}")
+
+print("\nРЕЗУЛЬТАТ CG:")
+print(f"Мінімальна точка x: {result_cg.x.round(4)}")
+print(f"Мінімальне значення: {result_cg.fun.round(6)}")
+print(f"Кількість ітерацій (CG): {result_cg.nit}")
+
+
+## 4. Порівняння Еволюційного Пошуку (BFGS vs CG з вимірюванням часу)
+
+import numpy as np
+from scipy.optimize import minimize
+import time
+
+
+def rosenbrock(x):
+    """f(x, y) = (1 - x)^2 + 100(y - x^2)^2. Мінімальне значення в точці (1, 1)."""
+   
+    return (1 - x[0])**2 + 100 * (x[1] - x[0]**2)**2
+
+
+def rosenbrock_grad(x):
+    df_dx = -2 * (1 - x[0]) - 400 * x[0] * (x[1] - x[0]**2)
+    df_dy = 200 * (x[1] - x[0]**2)
+    return np.array([df_dx, df_dy])
+
+
+x0 = np.array([-1.2, 1.0])
+print("--- Порівняння Методів Оптимізації ---")
+print(f"Початкова точка: {x0}")
+
+
+start_time_bfgs = time.time()
+result_bfgs = minimize(
+    rosenbrock,
+    x0,
+    method='BFGS',
+    jac=rosenbrock_grad,
+    options={'disp': False}
+)
+end_time_bfgs = time.time()
+
+
+start_time_cg = time.time()
+result_cg = minimize(
+    rosenbrock,
+    x0,
+    method='CG',
+    jac=rosenbrock_grad,
+    options={'disp': False}
+)
+end_time_cg = time.time()
+
+
+
+print("\nРЕЗУЛЬТАТ BFGS (Квазіньютонівський):")
+print(f"  Знайдений мінімум x: {result_bfgs.x.round(4)}")
+print(f"  Мінімальне значення f(x): {result_bfgs.fun.round(6)}")
+print(f"  Кількість ітерацій: {result_bfgs.nit}")
+print(f"  Час виконання: {(end_time_bfgs - start_time_bfgs):.4f} сек.")
+print("  Висновок: BFGS зазвичай швидший (менше ітерацій) завдяки кращій апроксимації Гессе.")
+
+print("\nРЕЗУЛЬТАТ CG (Спряжені Градієнти):")
+print(f"  Знайдений мінімум x: {result_cg.x.round(4)}")
+print(f"  Мінімальне значення f(x): {result_cg.fun.round(6)}")
+print(f"  Кількість ітерацій: {result_cg.nit}")
+print(f"  Час виконання: {(end_time_cg - start_time_cg):.4f} сек.")
+print("  Висновок: CG потребує більше ітерацій, але виграє у великих задачах, оскільки економить пам'ять.")
+
+
+## 5. Порівняння стратегій створення початкової популяції
+
+import numpy as np
+
+MIN_VAL = 0
+MAX_VAL = 10
+POP_SIZE = 5
+
+def tsiliova_funktsiia(x):
+    return (x - 5)**2
+
+
+def vipadkova_initsializatsiia(rozmir, min_znachennia, max_znachennia):
+    return np.random.uniform(min_znachennia, max_znachennia, rozmir)
+
+populatsiia_vypadkova = vipadkova_initsializatsiia(POP_SIZE, MIN_VAL, MAX_VAL)
+prydatnist_vypadkova = tsiliova_funktsiia(populatsiia_vypadkova)
+
+print("--- 1. Випадкова Ініціалізація (Повний діапазон) ---")
+print(f"Початкові рішення (X): {np.round(populatsiia_vypadkova, 2)}")
+print(f"Початкова придатність (Fitness): {np.round(prydatnist_vypadkova, 2)}")
+print(f"Середня придатність: {np.mean(prydatnist_vypadkova):.2f}")
+
+
+
+def evrystychna_initsializatsiia(rozmir):
+   
+    return np.random.normal(loc=5, scale=1.5, size=rozmir)
+
+populatsiia_evrystychna = evrystychna_initsializatsiia(POP_SIZE)
+prydatnist_evrystychna = tsiliova_funktsiia(populatsiia_evrystychna)
+
+print("\n--- 2. Евристична Ініціалізація (Фокус навколо 5) ---")
+print(f"Початкові рішення (X): {np.round(populatsiia_evrystychna, 2)}")
+print(f"Початкова придатність (Fitness): {np.round(prydatnist_evrystychna, 2)}")
+print(f"Середня придатність: {np.mean(prydatnist_evrystychna):.2f}")
+
+
+## 6. Приклад ООП vs АОП (ООП - Car)
+
+class Car:
+    def __init__(self, model):
+        self.model = model
+        self.speed = 0
+
+    def accelerate(self):
+        self.speed += 10
+        print(f"{self.model} прискорюється. Швидкість: {self.speed} км/год")
+
+car = Car("Toyota")
+car.accelerate()
+car.accelerate()
+
+
+## 7. Приклад ООП vs АОП (АОП - CarAgent)
+
+import random
+import time
+class CarAgent:
+    def __init__(self, model):
+        self.model = model
+        self.speed = 0
+
+    def perceive_environment(self):
+        # "Спостереження" за середовищем (наприклад, світлофор)
+        return random.choice(["green", "yellow", "red"])
+
+    def act(self):
+        signal = self.perceive_environment()
+        if signal == "green":
+            self.speed += 10
+            print(f"{self.model} їде. Швидкість: {self.speed} км/год")
+        elif signal == "yellow":
+            self.speed += 5
+            print(f"{self.model} сповільнюється.")
+        else:
+            self.speed = 0
+            print(f"{self.model} зупинилась на червоне світло.")
+
+car_agent = CarAgent("Tesla")
+for _ in range(5):
+    car_agent.act()
+    time.sleep(1)
+
+
+## 8. Приклад коду: спрощена симуляція Мурашиної Колонії (ACO)
+
+import random
+distances = [
+    [0, 2, 2, 5],
+    [2, 0, 3, 4],
+    [2, 3, 0, 1],
+    [5, 4, 1, 0]
+]
+num_cities = len(distances)
+num_ants = 5
+alpha = 1        
+beta = 2         
+rho = 0.5        
+pheromone = [[1 for _ in range(num_cities)] for _ in range(num_cities)]
+def select_next_city(visited, current):
+    probs = []
+    for j in range(num_cities):
+        if j not in visited:
+            prob = (pheromone[current][j] ** alpha) * ((1 / distances[current][j]) ** beta)
+            probs.append((j, prob))
+    total = sum(p for _, p in probs)
+    r = random.random() * total
+    cum_sum = 0
+    for city, prob in probs:
+        cum_sum += prob
+        if cum_sum >= r:
+            return city
+    return probs[-1][0]
+def ant_run():
+    path = [random.randint(0, num_cities - 1)]
+    while len(path) < num_cities:
+        path.append(select_next_city(path, path[-1]))
+    path.append(path[0])
+    return path
+
+def path_length(path):
+    return sum(distances[path[i]][path[i+1]] for i in range(len(path) - 1))
+for iteration in range(10):
+    all_paths = [ant_run() for _ in range(num_ants)]
+    lengths = [path_length(p) for p in all_paths]
+   
+   
+    for i in range(num_cities):
+        for j in range(num_cities):
+            pheromone[i][j] *= (1 - rho)
+    for path, length in zip(all_paths, lengths):
+        for i in range(len(path) - 1):
+            pheromone[path[i]][path[i+1]] += 1.0 / length
+best_path = min(all_paths, key=path_length)
+print("Найкращий знайдений шлях:", best_path)
+print("Його довжина:", path_length(best_path))
